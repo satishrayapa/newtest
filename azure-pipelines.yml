@@ -37,7 +37,7 @@ jobs:
           -location $(PrepCicd.DeployLocation)
           -appplan $(PrepCicd.DeployStackName)
           -appcount 1
-          -dbcount 3
+          -dbcount 1
           -tagEnvironmentType $(Global.TagEnvironmentType)
           -tagFinancialIdentifier $(Global.TagFinancialIdentifier)
           -tagApplicationAssetInsightId $(Global.TagApplicationAssetInsightId)
