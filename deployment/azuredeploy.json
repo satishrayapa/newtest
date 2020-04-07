@@ -61,7 +61,7 @@
         },
         "adminPassword": {
             "type": "securestring",
-            "defaultValue": "Satish@!sa1!123456",
+            "defaultValue": "AKCp5dLXVwQ3NBxbNQdwi5ZXjoDod8oKfGHZYgdjcpkhFGuWJnxLqZxFtbMyS39xHP4T4fvC3@19899",
             "metadata": {
                 "description": "Password for the sql server."
             }
