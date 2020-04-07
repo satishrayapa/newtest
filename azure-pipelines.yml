@@ -1,0 +1,96 @@
+pool:
+  vmImage: 'windows-2019'
+
+variables:
+  - group: aumentum-cloud-dev
+
+jobs:
+- job: PrepareEnvironmentJob
+  steps:
+  - task: PowerShell@2
+    displayName: 'Determine the name of this stack that the Pipeline is excuting for.'
+    inputs:
+      targetType: 'filePath'    
+      filePath: 'deployment\ConfigureStackName.ps1'
+      errorActionPreference: 'stop'
+
+  - task: PowerShell@2
+    name: PrepCicd
+    displayName: 'Configure variables to be used throughout the build pipeline (this yaml script).'
+    inputs:
+      targetType: 'filePath'
+      arguments: '-PipelineStackName $(PipelineStackName) -VariableArray DeployStackName,DeployResourceGroupName,DeployLocation,DeploySubnetName,DeployVirtualNetworkId,DeployOsDiskType,DeployVirtualMachineSize,DeployAdminUsername,StorageAccountName'
+      filePath: 'deployment\Prepcicd.ps1'
+      errorActionPreference: 'stop'
+
+  - task: AzureResourceGroupDeployment@2
+    displayName: 'Run ARM Deployment'
+    #condition: and(succeeded(), ne(variables['BuildOnly'], 'true'))
+    #delete storage account confirmation method
+    inputs:
+      azureSubscription: '$(Global.AzureSubscription)'
+      resourceGroupName: $(PrepCicd.DeployResourceGroupName)
+      location: '$(PrepCicd.DeployLocation)'
+      templateLocation: 'Linked artifact'
+      csmFile: deployment\azuredeploy.json
+      overrideParameters: >-
+          -location $(PrepCicd.DeployLocation)
+          -appplan $(PrepCicd.DeployStackName)
+          -appcount 1
+          -dbcount 3
+          -tagEnvironmentType $(Global.TagEnvironmentType)
+          -tagFinancialIdentifier $(Global.TagFinancialIdentifier)
+          -tagApplicationAssetInsightId $(Global.TagApplicationAssetInsightId)
+          -tagResourceOwner $(Global.TagResourceOwner)
+      deploymentOutputs: 'ArmOutput'
+
+  # - task: PowerShell@2
+  #   displayName: 'Parse ARM template outputs'
+  #   inputs:
+  #     targetType: 'filePath'
+  #     filePath: 'deployment\ParseArmOutputs.ps1'
+  #     errorActionPreference: 'stop'
+      
+  # - task: AzurePowerShell@4
+  #   displayName: 'Start VM (if not started)'
+  #   inputs:
+  #     azureSubscription: '$(Global.AzureSubscription)'
+  #     scriptPath: 'deployment\StartVm.ps1'
+  #     scriptArguments: >-
+  #         -VMName '$(armOutput_vmName)' 
+  #         -ResourceGroupName '$(PrepCicd.DeployResourceGroupName)' 
+  #         -Verbose
+  #     errorActionPreference: 'stop' 
+  #     azurePowerShellVersion: 'latestVersion'
+      
+  # - task: AzureFileCopy@3
+  #   condition: and(succeeded(), ne(variables['PrepCicd.DeployWorkload'], 'NULL'))
+  #   displayName: 'Copy source directory to Workload specific Azure Blob (VM)'
+  #   inputs:
+  #     sourcePath: '$(Build.SourcesDirectory)/vm'
+  #     azureSubscription: '$(Global.AzureSubscription)'
+  #     destination: azureBlob
+  #     storage: '$(PrepCicd.StorageAccountName)' 
+  #     containerName: 'build'
+  #     blobPrefix: '$(Build.BuildId)'
+
+  # - task: AzurePowerShell@4
+  #   displayName: 'Install on VM'
+  #   inputs:
+  #     azureSubscription: '$(Global.AzureSubscription)'
+  #     scriptPath: 'deployment\Install.ps1'
+  #     scriptArguments: >-
+  #         -StorageAccountName 'aumpoc'
+  #         -Location '$(PrepCicd.DeployLocation)'
+  #         -BuildId '$(Build.BuildId)' 
+  #         -VMName '$(armOutput_vmName)' 
+  #         -SubscriptionId '$(Global.AzureSubscription)' 
+  #         -ResourceGroupName '$(PrepCicd.DeployResourceGroupName)' 
+  #         -AdminPassword '$(aumadmin2)'
+  #         -Verbose
+  #     errorActionPreference: 'stop' 
+  #     azurePowerShellVersion: 'latestVersion' 
+  #     timeoutInMinutes: '30'
+      
+    
+             

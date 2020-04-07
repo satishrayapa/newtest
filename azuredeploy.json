@@ -1,0 +1,254 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+
+        "sku": {
+            "type": "string",
+            "defaultValue" : "S1",
+            "metadata": {
+              "description": "The SKU of App Service Plan, by default is Standard S1"
+            }
+        },
+        "appcount": {
+            "type": "int",
+            "defaultValue" : 1,
+            "metadata": {
+              "description": "The number of app services"
+            }
+        },
+        "dbcount": {
+            "type": "int",
+            "defaultValue" : 1,
+            "metadata": {
+              "description": "The number of sql db's"
+            }
+        },
+        "appplan": {
+            "type": "string",
+            "defaultValue": "aumappplan",
+            "metadata": {
+                "description": "name of appplan."
+            }
+        },
+        "appname": {
+            "type": "array",
+            "defaultValue": [
+                 "aumappsvc1"
+              
+            ]    
+        },
+        "sqlserver": {
+            "type": "string",
+            "defaultValue": "trdemosqlserver",
+            "metadata": {
+                "description": "name of sql server."
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "defaultValue": "satish",
+            "metadata": {
+                "description": "Username for the sql server."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "defaultValue": "Satish123456",
+            "metadata": {
+                "description": "Password for the sql server."
+            }
+        },
+        "databasename": {
+            "type": "securestring",
+            "defaultValue": "trdatabase",
+            "metadata": {
+                "description": "Password for the sql server."
+            }
+        },
+        "dbname": {
+            "type": "array",
+            "defaultValue": [
+                 "aumappasqldb1"
+                
+            ]
+        },
+        "tagEnvironmentType": {
+            "type": "string",
+            "metadata": {
+            "description": " for environment type."
+            }
+        },
+        "tagFinancialIdentifier": {
+            "type": "string",
+            "metadata": {
+            "description": "TR/Government Tagging standard for financial identifier."
+            }
+        },
+        "tagApplicationAssetInsightId": {
+            "type": "string",
+            "metadata": {
+            "description": "TR/Government Tagging standard for application asset insight Id."
+            }
+        },
+        "tagResourceOwner": {
+            "type": "string",
+            "metadata": {
+            "description": "TR/Government Tagging standard for resource owner."
+            }
+        }
+    },
+
+    "variables": {
+        "tag": {
+            "tr-application-asset-insight-id": "[parameters('tagApplicationAssetInsightId')]",
+            "tr-environment-type": "[parameters('tagEnvironmentType')]",
+            "tr-financial-identifier": "[parameters('tagFinancialIdentifier')]",
+            "tr-resource-owner": "[parameters('tagResourceOwner')]"
+        },
+        "sku": "[parameters('sku')]",
+        "location": "[parameters('location')]",
+        "appServicePlanName": "[parameters('appplan')]",
+        "appServiceName":"[parameters('appname')]",
+        "sqlserverName":"[parameters('sqlserver')]",
+        "sqlAdministratorLogin":"[parameters('adminUsername')]",
+        "sqlAdministratorLoginPassword":"[parameters('adminPassword')]",
+        "databaseName": "[parameters('databasename')]",
+        "countnum": "[parameters('dbname')]"
+    },
+
+    "resources": [
+       {
+        "name": "[variables('sqlserverName')]",
+        "type": "Microsoft.Sql/servers",
+        "location": "[variables('location')]",
+        "tags": "[variables('tag')]",
+        "apiVersion": "2014-04-01",
+        "properties": {
+            "administratorLogin": "[variables('sqlAdministratorLogin')]",
+            "administratorLoginPassword": "[variables('sqlAdministratorLoginPassword')]",
+            "version": "12.0"
+        },
+        "resources": [
+        {
+            "type": "firewallrules",
+            "apiVersion": "2014-04-01",
+            "dependsOn": [
+                "[variables('sqlserverName')]"
+            ],
+            "location": "[variables('location')]",
+            "name": "AllowAllWindowsAzureIps",
+            "properties": {
+                "endIpAddress": "190.190.190.191",
+                "startIpAddress": "190.190.190.190"
+                }
+        }
+        ]
+      },
+      {
+        "name": "[concat(variables('sqlserverName'), '/',variables('databaseName'),copyIndex())]",
+        "type": "Microsoft.Sql/servers/databases",
+        "location": "[variables('location')]",
+        "tags": "[variables('tag')]",
+        "apiVersion": "2014-04-01",
+        "copy": {
+            "name": "dbs",
+            "count": "[parameters('dbcount')]"
+        },
+        "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers',variables('sqlserverName')) ]"
+        ],
+        "properties": {
+            "edition": "Basic",
+            "collation": "SQL_Latin1_General_CP1_CI_AS",
+            "maxSizeBytes": "1073741824",
+            "requestedServiceObjectiveName": "Basic"
+        }
+    },  
+    {
+        "apiVersion": "2018-02-01",
+        "type": "Microsoft.Web/serverfarms",
+        "kind": "app",
+        "name": "[variables('appServicePlanName')]",
+        "location": "[variables('location')]",
+        "tags": "[variables('tag')]",
+        "properties": {},
+        "dependsOn": [],
+        "sku": {
+          "name": "[variables('sku')]"
+        }
+    },
+    {
+        "apiVersion": "2018-11-01",
+        "type": "Microsoft.Web/sites",
+        "kind": "app",
+        "name": "[concat('aum','-',parameters('appname')[copyIndex()])]",
+        "location": "[variables('location')]",
+        "tags": "[variables('tag')]",
+        "copy": {
+            "name": "appsvc",
+            "count": "[parameters('appcount')]"
+        },
+        "properties": {
+          "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]"
+        },
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]"
+        ],
+        "resources": [
+        {
+          "name": "appsettings",
+          "type": "config",
+          "apiVersion": "2014-11-01",
+          "dependsOn": [
+            "[concat('aum','-',parameters('appname')[copyIndex()])]"
+          ],
+          "properties": {
+            "APPINSIGHTS_INSTRUMENTATIONKEY": "tr",
+            "Keys:ApplicationInsights:InstrumentationKey": "TRACO"
+          }
+        },
+        
+        {
+            "type": "config",
+            "apiVersion": "2015-08-01",
+            "name": "web",
+            "properties": {
+                "ipSecurityRestrictions": [
+                    {
+                    "ipAddress": "11.11.11.11",
+                    "subnetMask": "255.255.255.255"
+                    }
+                ]
+            }, 
+            "dependsOn": [
+                "[concat('aum','-',parameters('appname')[copyIndex()])]"
+            ]
+        },
+        {
+          "apiVersion": "2016-03-01",
+          "type": "config",
+          "name": "connectionstrings",
+          "dependsOn": [
+            "[concat('aum','-',parameters('appname')[copyIndex()])]"
+          ],
+          "properties": {
+            "DefaultConnection": {
+              "value": "[concat('Data Source=tcp:', reference(concat('Microsoft.Sql/servers/', variables('sqlserverName'))).fullyQualifiedDomainName, ',1433;Initial Catalog=', concat(variables('sqlserverName'), '/',variables('databaseName'),copyIndex()), ';User Id=', variables('sqlAdministratorLogin'), '@', reference(concat('Microsoft.Sql/servers/', variables('sqlserverName'))).fullyQualifiedDomainName, ';Password=', variables('sqlAdministratorLoginPassword'), ';')]",
+              "type": "SQLAzure"
+            }
+          }
+        }
+      ]
+    }
+   ],
+
+    "outputs": {}
+}
