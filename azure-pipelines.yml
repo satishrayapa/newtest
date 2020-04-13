@@ -22,7 +22,13 @@ jobs:
       arguments: '-PipelineStackName $(PipelineStackName) -VariableArray DeployStackName,DeployResourceGroupName,DeployLocation,DeploySubnetName,DeployVirtualNetworkId,DeployOsDiskType,DeployVirtualMachineSize,DeployAdminUsername,StorageAccountName'
       filePath: 'deployment\Prepcicd.ps1'
       errorActionPreference: 'stop'
-
+  - task: ArchiveFiles@2
+    displayName: 'Zip Aumentum'    
+    inputs:
+      rootFolderOrFile: '$C:\test'
+      includeRootFolder: false
+      archiveType: 'zip'      
+      archiveFile: 'aryantestfile.zip'
   - task: AzureResourceGroupDeployment@2
     displayName: 'Run ARM Deployment'
     #condition: and(succeeded(), ne(variables['BuildOnly'], 'true'))
