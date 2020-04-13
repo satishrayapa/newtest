@@ -25,10 +25,10 @@ jobs:
   - task: ArchiveFiles@2
     displayName: 'Zip Aumentum'    
     inputs:
-      rootFolderOrFile: '$C:\test'
+      rootFolderOrFile: '$(Build.SourcesDirectory)'
       includeRootFolder: false
       archiveType: 'zip'      
-      archiveFile: 'aryantestfile.zip'
+      archiveFile: '$(Build.SourcesDirectory)\aryantestfile.zip'
   - task: AzureResourceGroupDeployment@2
     displayName: 'Run ARM Deployment'
     #condition: and(succeeded(), ne(variables['BuildOnly'], 'true'))
