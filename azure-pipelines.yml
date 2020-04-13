@@ -29,6 +29,15 @@ jobs:
       includeRootFolder: false
       archiveType: 'zip'      
       archiveFile: '$(Build.SourcesDirectory)\aryantestfile.zip'
+  - task: AzureFileCopy@3
+    displayName: 'Copy Aumentum zip to storage'
+    inputs:
+      sourcePath: '$(Build.ArtifactStagingDirectory)/aryantestfile.zip'
+      azureSubscription: $(Global.AzureSubscription)
+      destination: azureBlob
+      storage: $(StorageAccountName)
+      containerName: 'build'
+      blobPrefix: 'aumentum'
   - task: AzureResourceGroupDeployment@2
     displayName: 'Run ARM Deployment'
     #condition: and(succeeded(), ne(variables['BuildOnly'], 'true'))
