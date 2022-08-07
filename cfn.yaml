@@ -1,7 +1,7 @@
 Description: A template that creates the Cumulus Pipeline Poc
 Parameters:
   myVPC:
-    Default: 'vpc-0d18a97107dc20889'
+    Default: 'vpc-0bb47a7e9c25baa9a'
     Type: String
 
 Resources:
